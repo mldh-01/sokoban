@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sokoban</title>
+<style>
+    body { background:#222; display:flex; justify-content:center; padding-top:20px; }
+    canvas { background:#000; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+
+<canvas id="game" width="320" height="320"></canvas>
+
+<script>
+// =============================
+// SPRITES (pon tus imágenes aquí)
+// =============================
+const IMG = {
+    floor: "sprites/floor.png",
+    wall: "sprites/wall.png",
+    player: "sprites/player.png",
+    box: "sprites/box.png",
+    box_ok: "sprites/box_ok.png",
+    target: "sprites/target.png"
+};
+
+// =============================
+// MAPA (igual al de tu imagen)
+// 0 = suelo
+// 1 = pared
+// 2 = caja
+// 3 = objetivo
+// 4 = jugador
+// =============================
+let map = [
+    [1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1],
+    [1,0,2,2,2,0,1],
+    [1,0,3,3,3,0,1],
+    [1,0,3,3,3,0,1],
+    [1,0,2,0,2,0,1],
+    [1,1,1,0,1,1,1]
+];
+
+// Buscar al jugador
+let player = { x:0, y:0 };
+for(let y=0;y<map.length;y++){
+    for(let x=0;x<map[0].length;x++){
+        if(map[y][x] === 4){
+            player.x = x;
+            player.y = y;
+        }
+    }
+}
+
+// Cargar sprites
+const sprites = {};
+let loaded = 0;
+for (let key in IMG) {
+    sprites[key] = new Image();
+    sprites[key].src = IMG[key];
+    sprites[key].onload = () => loaded++;
+}
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const tile = 32;
+
+// =============================
+// DIBUJAR MAPA
+// =============================
+function draw(){
+    if(loaded < Object.keys(IMG).length) return;
+
+    for(let y=0;y<map.length;y++){
+        for(let x=0;x<map[0].length;x++){
+
+            // suelo siempre
+            ctx.drawImage(sprites.floor, x*tile, y*tile, tile, tile);
+
+            if(map[y][x] === 1) ctx.drawImage(sprites.wall, x*tile, y*tile, tile, tile);
+            if(map[y][x] === 3) ctx.drawImage(sprites.target, x*tile, y*tile, tile, tile);
+            if(map[y][x] === 2) ctx.drawImage(sprites.box, x*tile, y*tile, tile, tile);
+            if(map[y][x] === 5) ctx.drawImage(sprites.box_ok, x*tile, y*tile, tile, tile);
+            if(player.x === x && player.y === y) ctx.drawImage(sprites.player, x*tile, y*tile, tile, tile);
+        }
+    }
+}
+
+// =============================
+// CONTROL DE MOVIMIENTO
+// =============================
+document.addEventListener("keydown", (e)=>{
+    const dir = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0] };
+    if(!dir[e.key]) return;
+
+    let [dx, dy] = dir[e.key];
+    let nx = player.x + dx;
+    let ny = player.y + dy;
+
+    if(map[ny][nx] === 1) return; // pared
+
+    // empujar caja
+    if(map[ny][nx] === 2 || map[ny][nx] === 5){
+        let bx = nx + dx;
+        let by = ny + dy;
+
+        // no puede empujar si hay otra caja
+        if(map[by][bx] === 2 || map[by][bx] === 5 || map[by][bx] === 1) return;
+
+        // mover caja
+        map[by][bx] = (map[by][bx] === 3) ? 5 : 2;
+        map[ny][nx] = (map[ny][nx] === 5) ? 3 : 0;
+    }
+
+    // mover jugador
+    player.x = nx;
+    player.y = ny;
+
+    checkWin();
+});
+
+// =============================
+// COMPROBAR SI GANÓ
+// =============================
+function checkWin(){
+    let total = 0;
+    for(let y=0;y<map.length;y++){
+        for(let x=0;x<map[0].length;x++){
+            if(map[y][x] === 5) total++;
+        }
+    }
+    if(total === 5){
+        setTimeout(()=> alert("¡Has completado el nivel!"), 100);
+    }
+}
+
+// Bucle de dibujo
+function loop(){
+    draw();
+    requestAnimationFrame(loop);
+}
+loop();
+
+</script>
+
+</body>
+</html>
